@@ -1,0 +1,158 @@
+{
+	"info": {
+		"_postman_id": "5c41f66d-e414-4140-87cb-3312ab441740",
+		"name": "TDKT",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21673039"
+	},
+	"item": [
+		{
+			"name": "SET CONFIG",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "sql_host",
+							"value": "10.91.13.222\\\\MSSQLSERVER2017,1533",
+							"type": "text"
+						},
+						{
+							"key": "sql_database",
+							"value": "TDKT_VinhLong",
+							"type": "text"
+						},
+						{
+							"key": "sql_username",
+							"value": "tdkt",
+							"type": "text"
+						},
+						{
+							"key": "sql_password",
+							"value": "123@123axxx",
+							"type": "text"
+						},
+						{
+							"key": "es_host",
+							"value": "10.91.13.222",
+							"type": "text"
+						},
+						{
+							"key": "es_port",
+							"value": "9200",
+							"type": "text"
+						},
+						{
+							"key": "es_username",
+							"value": "elastic",
+							"type": "text"
+						},
+						{
+							"key": "es_password",
+							"value": "fSaDkz8yrNNSeRPfzB5B",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "10.91.13.222:88/set_config",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "88",
+					"path": [
+						"set_config"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "10.91.13.222:88/update",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "88",
+					"path": [
+						"update"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SEARCH",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "query",
+							"value": "giáo dục về phẩm chất đạo đức, tính cách, hình thành lối sống, nhân cách cho trẻ phát triển",
+							"type": "text"
+						},
+						{
+							"key": "index_name",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "method",
+							"value": "simcse",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "10.91.13.222:88/search",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "88",
+					"path": [
+						"search"
+					],
+					"query": [
+						{
+							"key": "query",
+							"value": "giáo dục về phẩm chất đạo đức, tính cách, hình thành lối sống, nhân cách cho trẻ phát triển",
+							"description": "Nội dung tìm kiếm",
+							"disabled": true
+						},
+						{
+							"key": "type",
+							"value": "2",
+							"description": "1: tìm với title, 2: tìm với descriptions",
+							"disabled": true
+						},
+						{
+							"key": "method",
+							"value": "simcse",
+							"description": "simcse nếu tìm với giải thuật simcse, bm25 hoặc bỏ trống nếu muốn tìm với BM25",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

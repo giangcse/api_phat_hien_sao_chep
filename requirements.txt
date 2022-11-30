@@ -1,0 +1,8 @@
+pyodbc
+uvicorn
+tqdm
+urllib3
+elasticsearch
+pyvi
+fastapi
+sentence-transformers

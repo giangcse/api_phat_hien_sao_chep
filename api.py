@@ -10,6 +10,7 @@ from elasticsearch.helpers import streaming_bulk
 
 from sentence_transformers import SentenceTransformer
 from pyvi.ViTokenizer import tokenize
+from underthesea import sent_tokenize
 
 from fastapi import FastAPI, Form
 from fastapi.requests import Request
@@ -122,7 +123,7 @@ class API:
             return JSONResponse(status_code=200, content="Lưu cài đặt thành công. Vui lòng khởi động lại hệ thống")
         # Create search
         @self.app.post('/search')
-        async def search(request: Request, query: str = Form(...), index_name: int = Form(...), method: str = Form(...)):
+        async def search(request: Request, query: str = Form(...), index_name: int = Form(...), method: str = Form(...), index: int = Form(...)):
             '''
             Hàm tìm kiếm
             -----
@@ -130,10 +131,12 @@ class API:
             - query (str): Nội dung tìm kiếm
             - index_name (int): Loại nội dung cần tìm: 0 - Tìm theo tên; 1 - Tìm theo mô tả
             - method (str): Thuật toán tìm kiếm: BM25 hoặc simCSE
+            - index (int): 0 - Vector hoá cả đoạn mô tả; 1 - Vector hoá từng câu trong mô tả
             output:
             JSON Object
             '''
             search_vector = 'description_vector' if int(index_name)==1 else 'title_vector'
+            index = 'sangkien_title_description' if int(index)==0 else 'sangkien_title_each_description'
             if str(method).lower() == 'simcse':
                 query_vector = self.embed_text([tokenize(query)])[0]
                 script_query = {
@@ -158,7 +161,7 @@ class API:
                     }
                 }
             response = self.es_client.search(
-                index='sangkien_title_description',
+                index=index,
                 body={
                     "size": 5,
                     "query": script_query,
@@ -180,9 +183,9 @@ class API:
         return text_embedding.tolist()
 
     # Create an index for Elasticsearch
-    def create_index(self):
+    def create_index(self, index_name):
         self.es_client.indices.create(
-            index="sangkien_title_description",
+            index=index_name,
             body={
                 "settings": {"number_of_shards": 1},
                 "mappings": {
@@ -209,30 +212,52 @@ class API:
             ignore=400,
         )
 
-    def generate_actions(self):
-        for row in self.data:
-            title = tokenize(row["tensangkien"])
-            title_vector = self.embed_text(title)
+    def generate_actions(self, index):
+        if int(index)==0:
+            for row in self.data:
+                title = tokenize(row["tensangkien"])
+                title_vector = self.embed_text(title)
 
-            description = tokenize(row["mota"])
-            description_vector = self.embed_text(description)
+                description = tokenize(row["mota"])
+                description_vector = self.embed_text(description)
 
-            doc = {
-                "id": int(row["id"]),
-                "title": row["tensangkien"],
-                "title_vector": title_vector,
-                "description": row["mota"],
-                "description_vector": description_vector
-            }
-            yield doc
+                doc = {
+                    "id": int(row["id"]),
+                    "title": row["tensangkien"],
+                    "title_vector": title_vector,
+                    "description": row["mota"],
+                    "description_vector": description_vector
+                }
+                yield doc
+        else:
+            for row in self.data:
+                title = tokenize(row["tensangkien"])
+                title_vector = self.embed_text(title)
+
+                sentences = sent_tokenize(row["mota"])
+
+                for sentence in sentences:
+                    description = tokenize(sentence)
+                    description_vector = self.embed_text(description)
+
+                    doc = {
+                        "id": int(row["id"]),
+                        "title": row["tensangkien"],
+                        "title_vector": title_vector,
+                        "description": sentence,
+                        "description_vector": description_vector
+                    }
+                    yield doc
+
 
     def bulk_data(self):
-        self.create_index()
-        # streaming_bulk(client=self.es_client, index="sangkien_title_description", actions=self.generate_actions(data),)
-        for ok, action in streaming_bulk(
-            client=self.es_client, index="sangkien_title_description", actions=self.generate_actions(),
-        ):
-            print(ok)
+        index_name = ['sangkien_title_description', 'sangkien_title_each_description']
+        for i in index_name:
+            self.create_index(i)
+            for ok, action in streaming_bulk(
+                client=self.es_client, index=i, actions=self.generate_actions(0 if i=='sangkien_title_description' else 1),
+            ):
+                print(ok)
 
 api = API()
 
@@ -240,4 +265,3 @@ if __name__=='__main__':
     config = uvicorn.Config("api:api.app", host='0.0.0.0', port=88, reload="True")
     server = uvicorn.Server(config)
     server.run()
-    # uvicorn.run("api:api.app", host='0.0.0.0', port=88, reload="True")

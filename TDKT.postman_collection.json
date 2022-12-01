@@ -104,16 +104,25 @@
 						{
 							"key": "query",
 							"value": "giáo dục về phẩm chất đạo đức, tính cách, hình thành lối sống, nhân cách cho trẻ phát triển",
+							"description": "Nội dung cần tìm kiếm",
 							"type": "text"
 						},
 						{
 							"key": "index_name",
 							"value": "1",
+							"description": "0 - Tìm theo tên; 1 - Tìm theo mô tả",
 							"type": "text"
 						},
 						{
 							"key": "method",
 							"value": "simcse",
+							"description": "bm25 hoặc simcse",
+							"type": "text"
+						},
+						{
+							"key": "index",
+							"value": "1",
+							"description": "0 - Vector hoá cả đoạn mô tả; 1 - Vector hoá từng câu trong mô tả",
 							"type": "text"
 						}
 					]
@@ -129,26 +138,6 @@
 					"port": "88",
 					"path": [
 						"search"
-					],
-					"query": [
-						{
-							"key": "query",
-							"value": "giáo dục về phẩm chất đạo đức, tính cách, hình thành lối sống, nhân cách cho trẻ phát triển",
-							"description": "Nội dung tìm kiếm",
-							"disabled": true
-						},
-						{
-							"key": "type",
-							"value": "2",
-							"description": "1: tìm với title, 2: tìm với descriptions",
-							"disabled": true
-						},
-						{
-							"key": "method",
-							"value": "simcse",
-							"description": "simcse nếu tìm với giải thuật simcse, bm25 hoặc bỏ trống nếu muốn tìm với BM25",
-							"disabled": true
-						}
 					]
 				}
 			},

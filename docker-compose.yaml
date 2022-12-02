@@ -1,0 +1,22 @@
+version: '3.7'
+services:
+  web:
+    build: ./web
+    ports:
+      - "5088:88"
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+      
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.2
+    ports:
+      - "9201:9201"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    tty: true
+    environment:
+      discovery.type: single-node
+volumes:
+  es-data:
+    driver: local

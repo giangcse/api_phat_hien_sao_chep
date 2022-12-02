@@ -1,8 +1,0 @@
-version: "3.7"
-
-services:
-  app:
-    image: api/phat_hien_sao_chep:v1
-    ports:
-      - "5088:88"
-    restart: unless-stopped

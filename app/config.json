@@ -1,1 +1,0 @@
-{"sql": {"host": "10.91.13.222\\\\MSSQLSERVER2017,1533", "database": "TDKT_VinhLong", "username": "tdkt", "password": "123@123axxx"}, "elasticsearch": {"host": "10.91.13.222", "port": 9200, "username": "elastic", "password": "fSaDkz8yrNNSeRPfzB5B"}}

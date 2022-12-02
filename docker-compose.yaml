@@ -3,7 +3,7 @@ services:
   web:
     build: ./web
     ports:
-      - "5088:88"
+      - "5188:88"
     restart: unless-stopped
     depends_on:
       - elasticsearch
@@ -20,3 +20,4 @@ services:
 volumes:
   es-data:
     driver: local
+

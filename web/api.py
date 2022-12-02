@@ -35,10 +35,10 @@ class API:
             with open(configPath, 'r', encoding='utf8') as f:
                 config = json.load(f)
                 # Init an Elasticsearch connection
-                self.es_client = Elasticsearch('elasticsearch:9200')
+                self.es_client = Elasticsearch('https://elastic:123456@localhost:9200')
                 print(' ************************* elasticsearch init ok *************************')
                 # self.es_client = Elasticsearch(
-                #     'https://' + str(config['elasticsearch']['host']) + ':' + str(config['elasticsearch']['port']),
+                #     'https://' + 'elasticsearch:9200' + ':' + str(config['elasticsearch']['port']),
                 #     http_auth=(str(config['elasticsearch']['username']), str(config['elasticsearch']['password'])),
                 #     verify_certs=False
                 # )
@@ -246,7 +246,7 @@ class API:
 api = API()
 
 if __name__=='__main__':
-    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=88)
+    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000)
     server = uvicorn.Server(config)
     server.run()
     # uvicorn.run("api:api.app", host='0.0.0.0', port=88, reload="True")

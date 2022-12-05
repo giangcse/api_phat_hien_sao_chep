@@ -35,7 +35,7 @@ class API:
             with open(configPath, 'r', encoding='utf8') as f:
                 config = json.load(f)
                 # Init an Elasticsearch connection
-                self.es_client = Elasticsearch('https://elastic:123456@localhost:9200')
+                self.es_client = Elasticsearch('https://elastic:vnpt123@es01:9200',verify_certs=False)
                 print(' ************************* elasticsearch init ok *************************')
                 # self.es_client = Elasticsearch(
                 #     'https://' + 'elasticsearch:9200' + ':' + str(config['elasticsearch']['port']),

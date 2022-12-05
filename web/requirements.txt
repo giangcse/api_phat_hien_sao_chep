@@ -1,0 +1,9 @@
+elasticsearch==7.12.*
+fastapi==0.88.*
+pyvi==0.1.*
+tqdm==4.64.*
+uvicorn==0.20.*
+pyodbc==4.0.*
+sentence_transformers==2.2.*
+python-multipart
+python-es

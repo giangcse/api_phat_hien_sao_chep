@@ -28,20 +28,29 @@ class API:
         # Model embedding
         self.model_embedding = SentenceTransformer('VoVanPhuc/sup-SimCSE-VietNamese-phobert-base')
         # Check file config
-        if os.path.exists(self.CONFIG_FILE):
-            with open(self.CONFIG_FILE, 'r', encoding='utf8') as f:
+        print(' ************************* initializing *************************')
+        configPath = os.path.join('./web',self.CONFIG_FILE)
+        if os.path.exists(configPath):
+            print(' ************************* config file existed *************************')
+            with open(configPath, 'r', encoding='utf8') as f:
                 config = json.load(f)
                 # Init an Elasticsearch connection
-                self.es_client = Elasticsearch(
-                    'https://' + str(config['elasticsearch']['host']) + ':' + str(config['elasticsearch']['port']),
-                    http_auth=(str(config['elasticsearch']['username']), str(config['elasticsearch']['password'])),
-                    verify_certs=False
-                )
+                self.es_client = Elasticsearch('https://elastic:vnpt123@es01:9200',verify_certs=False)
+                print(' ************************* elasticsearch init ok *************************')
+                # self.es_client = Elasticsearch(
+                #     'https://' + 'elasticsearch:9200' + ':' + str(config['elasticsearch']['port']),
+                #     http_auth=(str(config['elasticsearch']['username']), str(config['elasticsearch']['password'])),
+                #     verify_certs=False
+                # )
                 # Connect to SQL Server and create a cursor
                 self.sql_connection = pyodbc.connect(driver='{ODBC Driver 17 for SQL Server}', 
                                                     host=str(config['sql']['host']), database=str(config['sql']['database']),
                                                     user=str(config['sql']['username']), password=str(config['sql']['password']))
                 self.cursor = self.sql_connection.cursor()
+                print('************************* sql connection init ok *************************')
+        # else:
+        #     print(' ************************* config file not existed *************************')
+
         # Init an API app
         self.app = FastAPI()
         self.app.add_middleware(
@@ -65,7 +74,7 @@ class API:
             '''
             try:
                 response = self.es_client.search(
-                    index='sangkien_title_description',
+                    index='similartity-dummy-prod',
                     body={
                         "aggs": {
                             "max_id": { "max": { "field": "id" } }
@@ -237,7 +246,7 @@ class API:
 api = API()
 
 if __name__=='__main__':
-    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=88, reload="True")
+    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000)
     server = uvicorn.Server(config)
     server.run()
     # uvicorn.run("api:api.app", host='0.0.0.0', port=88, reload="True")

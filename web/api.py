@@ -10,11 +10,23 @@ from elasticsearch.helpers import streaming_bulk
 
 from sentence_transformers import SentenceTransformer
 from pyvi.ViTokenizer import tokenize
+from underthesea import sent_tokenize
 
 from fastapi import FastAPI, Form
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Union
+
+class SEARCH_BODY(BaseModel):
+    query: str
+    index_name: int
+    method: str
+    index: int
+    title: Union[str, None] = None
+    quantity: Union[int, None] = None
+
 
 class API:
     def __init__(self) -> None:
@@ -23,34 +35,27 @@ class API:
         ------
         Khởi tạo các tham số, các kết nối đến SQL Server, Elasticsearch, tạo API, load model embedding
         '''
+        self.TOP_3_LIST = []
+        self.BODY_QUERY = {}
         self.CHUNK_SIZE = 16384
         self.CONFIG_FILE = 'config.json'
         # Model embedding
         self.model_embedding = SentenceTransformer('VoVanPhuc/sup-SimCSE-VietNamese-phobert-base')
         # Check file config
-        print(' ************************* initializing *************************')
-        configPath = os.path.join('./web',self.CONFIG_FILE)
-        if os.path.exists(configPath):
-            print(' ************************* config file existed *************************')
-            with open(configPath, 'r', encoding='utf8') as f:
+        if os.path.exists(self.CONFIG_FILE):
+            with open(self.CONFIG_FILE, 'r', encoding='utf8') as f:
                 config = json.load(f)
                 # Init an Elasticsearch connection
-                self.es_client = Elasticsearch('https://elastic:vnpt123@es01:9200',verify_certs=False)
-                print(' ************************* elasticsearch init ok *************************')
-                # self.es_client = Elasticsearch(
-                #     'https://' + 'elasticsearch:9200' + ':' + str(config['elasticsearch']['port']),
-                #     http_auth=(str(config['elasticsearch']['username']), str(config['elasticsearch']['password'])),
-                #     verify_certs=False
-                # )
+                self.es_client = Elasticsearch(
+                    'https://' + str(config['elasticsearch']['host']) + ':' + str(config['elasticsearch']['port']),
+                    http_auth=(str(config['elasticsearch']['username']), str(config['elasticsearch']['password'])),
+                    verify_certs=False
+                )
                 # Connect to SQL Server and create a cursor
                 self.sql_connection = pyodbc.connect(driver='{ODBC Driver 17 for SQL Server}', 
                                                     host=str(config['sql']['host']), database=str(config['sql']['database']),
                                                     user=str(config['sql']['username']), password=str(config['sql']['password']))
                 self.cursor = self.sql_connection.cursor()
-                print('************************* sql connection init ok *************************')
-        # else:
-        #     print(' ************************* config file not existed *************************')
-
         # Init an API app
         self.app = FastAPI()
         self.app.add_middleware(
@@ -74,7 +79,7 @@ class API:
             '''
             try:
                 response = self.es_client.search(
-                    index='similartity-dummy-prod',
+                    index='sangkien_title_description',
                     body={
                         "aggs": {
                             "max_id": { "max": { "field": "id" } }
@@ -131,57 +136,103 @@ class API:
             return JSONResponse(status_code=200, content="Lưu cài đặt thành công. Vui lòng khởi động lại hệ thống")
         # Create search
         @self.app.post('/search')
-        async def search(request: Request, query: str = Form(...), index_name: int = Form(...), method: str = Form(...)):
-            '''
-            Hàm tìm kiếm
-            -----
-            input:
-            - query (str): Nội dung tìm kiếm
-            - index_name (int): Loại nội dung cần tìm: 0 - Tìm theo tên; 1 - Tìm theo mô tả
-            - method (str): Thuật toán tìm kiếm: BM25 hoặc simCSE
-            output:
-            JSON Object
-            '''
-            search_vector = 'description_vector' if int(index_name)==1 else 'title_vector'
-            if str(method).lower() == 'simcse':
-                query_vector = self.embed_text([tokenize(query)])[0]
+        async def search(search_body: SEARCH_BODY):
+            self.BODY_QUERY = {"query": search_body.query, "index_name":search_body.index_name, "method": search_body.method, "index": search_body.index, "title": search_body.title}
+            return JSONResponse(content=self.find_(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title), status_code=200)
+
+        @self.app.post('/check_dao_van')
+        async def check_dao_van(search_body: SEARCH_BODY):
+            self.BODY_QUERY = {"query": search_body.query, "index_name":search_body.index_name, "method": search_body.method, "index": search_body.index, "title": search_body.title, "quantity": search_body.quantity}
+            self.find_best_match_docs(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title, search_body.quantity)
+            return JSONResponse(content=self.statistic_for_doc(), status_code=200)
+
+    def find_(self, query, index_name, method, index, title):
+        '''
+        Hàm tìm kiếm
+        -----
+        input:
+        - query (str): Nội dung tìm kiếm
+        - index_name (int): Loại nội dung cần tìm: 0 - Tìm theo tên; 1 - Tìm theo mô tả
+        - method (str): Thuật toán tìm kiếm: BM25 hoặc simCSE
+        - index (int): 0 - Vector hoá cả đoạn mô tả; 1 - Vector hoá từng câu trong mô tả
+        output:
+        JSON Object
+        '''
+        search_vector = 'description_vector' if int(index_name)==1 else 'title_vector'
+        index = 'sangkien_title_description' if int(index)==0 else 'sangkien_title_each_description'
+        if str(method).lower() == 'simcse':
+            query_vector = self.embed_text([tokenize(query)])[0]
+            if(title):
                 script_query = {
                     "script_score": {
                         "query": {
-                            "match_all": {}
+                            "match": {
+                                "title": title
+                            }
                         }
                         ,
                         "script": {
-                            "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 1.0",
+                            "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 0.0",
                             "params": {"query_vector": query_vector}
                         }
                     }
                 }
             else:
                 script_query = {
-                    "match": {
-                    "description": {
-                        "query": query,
-                        "fuzziness": "AUTO"
+                "script_score": {
+                    "query": {
+                        "match_all": {}
                     }
+                    ,
+                    "script": {
+                        "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 0.0",
+                        "params": {"query_vector": query_vector}
                     }
                 }
-            response = self.es_client.search(
-                index='sangkien_title_description',
-                body={
-                    "size": 5,
-                    "query": script_query,
-                    "_source": {
-                        "includes": ["id", "title", "description"]
-                    },
+            }
+        else:
+            script_query = {
+                "match": {
+                "description": {
+                    "query": query,
+                    "fuzziness": "AUTO"
+                }
+                }
+            }
+        response = self.es_client.search(
+            index=index,
+            body={
+                "size": 5,
+                "query": script_query,
+                "_source": {
+                    "includes": ["id", "title", "description"]
                 },
-                ignore=[400]
-            )
+            },
+            ignore=[400]
+        )
 
-            result = []
-            for hit in response["hits"]["hits"]:
-                result.append({"score": hit["_score"], "title": str(hit["_source"]['title']), "description": str(hit["_source"]['description'])})
-            return JSONResponse(status_code=200, content=result)
+        result = []
+        for hit in response["hits"]["hits"]:
+            result.append({"score": hit["_score"], "title": str(hit["_source"]['title']), "description": str(hit["_source"]['description'])})
+        
+        return result
+
+    def find_best_match_docs(self, query, index_name, method, index, title, quantity):
+        self.TOP_3_LIST = self.find_(query, index_name, method, index, title)[:quantity-1]
+        print('***********TOP 3 LIST: {}'.format(self.TOP_3_LIST))
+        pass
+
+    def statistic_for_doc(self):
+        result = []
+        if len(self.TOP_3_LIST) > 0:
+            sentences = sent_tokenize(self.BODY_QUERY['query'])
+            for item in self.TOP_3_LIST:
+                for sentence in sentences:
+                    print('+++++++++++++++ Item: {} ------------ Sentence: {}'.format(item, sentence))
+                    result.append({"data": self.find_(sentence, self.BODY_QUERY['index_name'], self.BODY_QUERY['method'], 1, item['title']), "query": sentence})
+
+        return (result)
+
 
     # Vectorize text
     def embed_text(self, text):
@@ -189,9 +240,9 @@ class API:
         return text_embedding.tolist()
 
     # Create an index for Elasticsearch
-    def create_index(self):
+    def create_index(self, index_name):
         self.es_client.indices.create(
-            index="sangkien_title_description",
+            index=index_name,
             body={
                 "settings": {"number_of_shards": 1},
                 "mappings": {
@@ -218,35 +269,56 @@ class API:
             ignore=400,
         )
 
-    def generate_actions(self):
-        for row in self.data:
-            title = tokenize(row["tensangkien"])
-            title_vector = self.embed_text(title)
+    def generate_actions(self, index):
+        if int(index)==0:
+            for row in self.data:
+                title = tokenize(row["tensangkien"])
+                title_vector = self.embed_text(title)
 
-            description = tokenize(row["mota"])
-            description_vector = self.embed_text(description)
+                description = tokenize(row["mota"])
+                description_vector = self.embed_text(description)
 
-            doc = {
-                "id": int(row["id"]),
-                "title": row["tensangkien"],
-                "title_vector": title_vector,
-                "description": row["mota"],
-                "description_vector": description_vector
-            }
-            yield doc
+                doc = {
+                    "id": int(row["id"]),
+                    "title": row["tensangkien"],
+                    "title_vector": title_vector,
+                    "description": row["mota"],
+                    "description_vector": description_vector
+                }
+                yield doc
+        else:
+            for row in self.data:
+                title = tokenize(row["tensangkien"])
+                title_vector = self.embed_text(title)
+
+                sentences = sent_tokenize(row["mota"])
+
+                for sentence in sentences:
+                    description = tokenize(sentence)
+                    description_vector = self.embed_text(description)
+
+                    doc = {
+                        "id": int(row["id"]),
+                        "title": row["tensangkien"],
+                        "title_vector": title_vector,
+                        "description": sentence,
+                        "description_vector": description_vector
+                    }
+                    yield doc
+
 
     def bulk_data(self):
-        self.create_index()
-        # streaming_bulk(client=self.es_client, index="sangkien_title_description", actions=self.generate_actions(data),)
-        for ok, action in streaming_bulk(
-            client=self.es_client, index="sangkien_title_description", actions=self.generate_actions(),
-        ):
-            print(ok)
+        index_name = ['sangkien_title_description', 'sangkien_title_each_description']
+        for i in index_name:
+            self.create_index(i)
+            for ok, action in streaming_bulk(
+                client=self.es_client, index=i, actions=self.generate_actions(0 if i=='sangkien_title_description' else 1),
+            ):
+                print(ok)
 
 api = API()
 
 if __name__=='__main__':
-    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000)
+    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000, reload="True")
     server = uvicorn.Server(config)
     server.run()
-    # uvicorn.run("api:api.app", host='0.0.0.0', port=88, reload="True")

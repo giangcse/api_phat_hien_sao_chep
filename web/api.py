@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Union
 
+# Model search body json
 class SEARCH_BODY(BaseModel):
     query: str
     index_name: int
@@ -26,7 +27,17 @@ class SEARCH_BODY(BaseModel):
     index: int
     title: Union[str, None] = None
     quantity: Union[int, None] = None
-
+# Model config body json
+class CONFIG(BaseModel):
+    sql_host: str
+    sql_database: str
+    sql_username: str
+    sql_password: str
+    es_host: str
+    es_port: int = 1553
+    es_username: str = 'elastic'
+    es_password: str
+    similarity_threshold: float
 
 class API:
     def __init__(self) -> None:
@@ -99,16 +110,6 @@ class API:
                     ignore=[400]
                 )
 
-                # response = self.es_client.search(
-                #     index='sangkien_title_description',
-                #     body={
-                #         "aggs": {
-                #             "max_id": { "max": { "field": "id" } }
-                #         }
-                #     },
-                #     ignore=[400]
-                # )
-                # max_id = response['aggregations']['max_id']['value']
                 result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien")
             except Exception:
                 result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien WHERE SangKienID > {}".format(0))
@@ -121,11 +122,11 @@ class API:
 
         # Set config
         @self.app.post('/set_config')
-        async def set_config(request: Request, sql_host: str = Form(...), sql_database: str = Form(...), sql_username: str = Form(...), sql_password: str = Form(...), es_host: str = Form(...), es_port: int = Form(...), es_username: str = Form(...), es_password: str = Form(...)):
+        async def set_config(config_body: CONFIG):
             '''
             Hàm tạo/ghi đè file config
             ------
-            input:
+            input (JSON Object):
             - sql_host (str): Host SQL Server
             - sql_database (str): Database SQL Server
             - sql_username (str): Username SQL Server
@@ -134,24 +135,25 @@ class API:
             - es_port (int): Elasticsearch port
             - es_username (str): Elasticsearch username
             - es_password (str): Elasticsearch password
-
+            - similarity_threshold (Int): Ngưỡng xác định 2 câu giống nhau
             output:
             File JSON: config.json
             '''
             with open(self.CONFIG_FILE, 'w', encoding='utf8') as f:
                 json.dump({
                     "sql": {
-                        "host": sql_host,
-                        "database": sql_database,
-                        "username": sql_username,
-                        "password": sql_password
+                        "host": config_body.sql_host,
+                        "database": config_body.ql_database,
+                        "username": config_body.sql_username,
+                        "password": config_body.sql_password
                     },
                     "elasticsearch": {
-                        "host": es_host,
-                        "port": es_port,
-                        "username": es_username,
-                        "password": es_password
-                    }
+                        "host": config_body.es_host,
+                        "port": config_body.es_port,
+                        "username": config_body.es_username,
+                        "password": config_body.es_password
+                    },
+                    "similarity_threshold": config_body.similarity_threshold
                 }, f)
             f.close()
             return JSONResponse(status_code=200, content="Lưu cài đặt thành công. Vui lòng khởi động lại hệ thống")

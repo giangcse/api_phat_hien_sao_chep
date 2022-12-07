@@ -84,17 +84,32 @@ class API:
             Tìm max_id bên Elasticsearch và so sánh với SQL Server
             '''
             try:
-                response = self.es_client.search(
-                    index='sangkien_title_description',
+                indices = ['sangkien_title_description', 'sangkien_title_each_description']
+                response = self.es_client.delete_by_query(
+                    index=indices,
                     body={
-                        "aggs": {
-                            "max_id": { "max": { "field": "id" } }
+                        'query': {
+                            'bool': {
+                                'must': {
+                                    'match_all': {}
+                                }
+                            }
                         }
                     },
                     ignore=[400]
                 )
-                max_id = response['aggregations']['max_id']['value']
-                result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien WHERE SangKienID > {}".format(max_id))
+
+                # response = self.es_client.search(
+                #     index='sangkien_title_description',
+                #     body={
+                #         "aggs": {
+                #             "max_id": { "max": { "field": "id" } }
+                #         }
+                #     },
+                #     ignore=[400]
+                # )
+                # max_id = response['aggregations']['max_id']['value']
+                result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien")
             except Exception:
                 result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien WHERE SangKienID > {}".format(0))
 

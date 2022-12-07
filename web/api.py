@@ -39,22 +39,28 @@ class API:
         self.BODY_QUERY = {}
         self.CHUNK_SIZE = 16384
         self.CONFIG_FILE = 'config.json'
+        self.config = {}
         # Model embedding
         self.model_embedding = SentenceTransformer('VoVanPhuc/sup-SimCSE-VietNamese-phobert-base')
         # Check file config
-        if os.path.exists(self.CONFIG_FILE):
-            with open(self.CONFIG_FILE, 'r', encoding='utf8') as f:
-                config = json.load(f)
+        print('*********** start init *********** ')
+        config_file_path = os.path.join('./web/',self.CONFIG_FILE)
+        if os.path.exists(config_file_path):
+            print('*********** CONFIG_FILE existed *********** ')
+            with open(config_file_path, 'r', encoding='utf8') as f:
+                self.config = json.load(f)
+                print('*********** CONFIG_FILE loaded *********** ')
                 # Init an Elasticsearch connection
                 self.es_client = Elasticsearch(
-                    'https://' + str(config['elasticsearch']['host']) + ':' + str(config['elasticsearch']['port']),
-                    http_auth=(str(config['elasticsearch']['username']), str(config['elasticsearch']['password'])),
+                    'https://' + str(self.config['elasticsearch']['host']) + ':' + str(self.config['elasticsearch']['port']),
+                    http_auth=(str(self.config['elasticsearch']['username']), str(self.config['elasticsearch']['password'])),
                     verify_certs=False
                 )
+                print('*********** Elasticsearch inited *********** ')
                 # Connect to SQL Server and create a cursor
                 self.sql_connection = pyodbc.connect(driver='{ODBC Driver 17 for SQL Server}', 
-                                                    host=str(config['sql']['host']), database=str(config['sql']['database']),
-                                                    user=str(config['sql']['username']), password=str(config['sql']['password']))
+                                                    host=str(self.config['sql']['host']), database=str(self.config['sql']['database']),
+                                                    user=str(self.config['sql']['username']), password=str(self.config['sql']['password']))
                 self.cursor = self.sql_connection.cursor()
         # Init an API app
         self.app = FastAPI()
@@ -138,7 +144,8 @@ class API:
         @self.app.post('/search')
         async def search(search_body: SEARCH_BODY):
             self.BODY_QUERY = {"query": search_body.query, "index_name":search_body.index_name, "method": search_body.method, "index": search_body.index, "title": search_body.title}
-            return JSONResponse(content=self.find_(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title), status_code=200)
+            content , _ = self.find_(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title)
+            return JSONResponse(content , status_code=200)
 
         @self.app.post('/check_dao_van')
         async def check_dao_van(search_body: SEARCH_BODY):
@@ -146,7 +153,7 @@ class API:
             self.find_best_match_docs(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title, search_body.quantity)
             return JSONResponse(content=self.statistic_for_doc(), status_code=200)
 
-    def find_(self, query, index_name, method, index, title):
+    def find_(self, query, index_name, method, index, id):
         '''
         Hàm tìm kiếm
         -----
@@ -162,15 +169,20 @@ class API:
         index = 'sangkien_title_description' if int(index)==0 else 'sangkien_title_each_description'
         if str(method).lower() == 'simcse':
             query_vector = self.embed_text([tokenize(query)])[0]
-            if(title):
+            if(id):
                 script_query = {
                     "script_score": {
-                        "query": {
-                            "match": {
-                                "title": title
-                            }
-                        }
-                        ,
+                            "query": {
+                                "bool": {
+                                    "filter": [
+                                        {
+                                            "term": {
+                                                "id": id
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
                         "script": {
                             "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 0.0",
                             "params": {"query_vector": query_vector}
@@ -202,7 +214,6 @@ class API:
         response = self.es_client.search(
             index=index,
             body={
-                "size": 5,
                 "query": script_query,
                 "_source": {
                     "includes": ["id", "title", "description"]
@@ -210,28 +221,47 @@ class API:
             },
             ignore=[400]
         )
-
-        result = []
-        for hit in response["hits"]["hits"]:
-            result.append({"score": hit["_score"], "title": str(hit["_source"]['title']), "description": str(hit["_source"]['description'])})
         
-        return result
+        result = []
+        if "hits" in response:
+            for hit in response["hits"]["hits"]:
+                result.append({"score": hit["_score"] * 100, 
+                                "id": hit["_source"]['id'],
+                                "title": str(hit["_source"]['title']), 
+                                "description": str(hit["_source"]['description'])})
+        
+        return result , response["hits"]['total']['value']
 
-    def find_best_match_docs(self, query, index_name, method, index, title, quantity):
-        self.TOP_3_LIST = self.find_(query, index_name, method, index, title)[:quantity-1]
+    def find_best_match_docs(self, query, index_name, method, index, id, quantity):
+        self.TOP_3_LIST , _ = self.find_(query, index_name, method, index, id)[:quantity-1]
         print('***********TOP 3 LIST: {}'.format(self.TOP_3_LIST))
         pass
 
     def statistic_for_doc(self):
-        result = []
+        resultList = []
+        compareDict = {}
+        similar_sentences = []
         if len(self.TOP_3_LIST) > 0:
             sentences = sent_tokenize(self.BODY_QUERY['query'])
             for item in self.TOP_3_LIST:
                 for sentence in sentences:
                     print('+++++++++++++++ Item: {} ------------ Sentence: {}'.format(item, sentence))
-                    result.append({"data": self.find_(sentence, self.BODY_QUERY['index_name'], self.BODY_QUERY['method'], 1, item['title']), "query": sentence})
+                    result , total_sentences = self.find_(sentence, self.BODY_QUERY['index_name'], self.BODY_QUERY['method'], 1, item['id'])
+                    for item in result:
+                        if (float(item['score']) > self.config['similarity_threshold']):
+                            compareDict['title'] = item['title']
+                            similar_sentences.append(item)
 
-        return (result)
+                compareDict['number_similar'] = len(similar_sentences)
+                compareDict['total_sentences'] = total_sentences
+                compareDict['percentage_similarity'] = str(round((len(similar_sentences) / total_sentences * 100), 2))
+                compareDict['similar_sentences'] = similar_sentences
+                if compareDict['number_similar'] > 0:
+                    resultList.append(compareDict)
+                    compareDict = {}
+                    similar_sentences = []
+
+        return (resultList)
 
 
     # Vectorize text

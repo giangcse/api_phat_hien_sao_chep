@@ -143,7 +143,7 @@ class API:
                 json.dump({
                     "sql": {
                         "host": config_body.sql_host,
-                        "database": config_body.ql_database,
+                        "database": config_body.sql_database,
                         "username": config_body.sql_username,
                         "password": config_body.sql_password
                     },

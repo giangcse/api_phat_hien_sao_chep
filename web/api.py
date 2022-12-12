@@ -39,6 +39,9 @@ class CONFIG(BaseModel):
     es_password: str
     similarity_threshold: float
 
+class UPDATE(BaseModel):
+    id: int
+
 class API:
     def __init__(self) -> None:
         '''
@@ -88,7 +91,7 @@ class API:
             return JSONResponse(status_code=200, content="Kết nối thành công. Vui lòng kiểm tra lại config.")
         # Update database
         @self.app.post('/update')
-        async def update():
+        async def update(update: UPDATE):
             '''
             Hàm cập nhật DB từ SQL Server sang Elasticsearch
             -----
@@ -99,10 +102,10 @@ class API:
                 response = self.es_client.delete_by_query(
                     index=indices,
                     body={
-                        'query': {
-                            'bool': {
-                                'must': {
-                                    'match_all': {}
+                        "query":{
+                            "bool": {
+                                "must": {
+                                    "match": {"id": int(update.id)}
                                 }
                             }
                         }
@@ -110,7 +113,7 @@ class API:
                     ignore=[400]
                 )
 
-                result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien")
+                result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien WHERE SangKienID = {}".format(update.id))
             except Exception:
                 result = self.cursor.execute("SELECT SangKienID, TenSangKien, MoTa FROM dbo.TDKT_SangKien WHERE SangKienID > {}".format(0))
 
@@ -191,13 +194,9 @@ class API:
                     "script_score": {
                             "query": {
                                 "bool": {
-                                    "filter": [
-                                        {
-                                            "term": {
+                                    "match": {
                                                 "id": id
                                             }
-                                        }
-                                    ]
                                 }
                             },
                         "script": {
@@ -271,7 +270,10 @@ class API:
 
                 compareDict['number_similar'] = len(similar_sentences)
                 compareDict['total_sentences'] = total_sentences
-                compareDict['percentage_similarity'] = str(round((len(similar_sentences) / total_sentences * 100), 2))
+                try:
+                    compareDict['percentage_similarity'] = str(round((len(similar_sentences) / total_sentences * 100), 2))
+                except ZeroDivisionError:
+                    compareDict['percentage_similarity'] = str(0)
                 compareDict['similar_sentences'] = similar_sentences
                 if compareDict['number_similar'] > 0:
                     resultList.append(compareDict)

@@ -194,9 +194,12 @@ class API:
                     "script_score": {
                             "query": {
                                 "bool": {
-                                    "match": {
+                                    "must": 
+                                        {
+                                            "match": {
                                                 "id": id
                                             }
+                                        }
                                 }
                             },
                         "script": {
@@ -250,7 +253,7 @@ class API:
 
     def find_best_match_docs(self, query, index_name, method, index, id, quantity):
         self.TOP_3_LIST , _ = self.find_(query, index_name, method, index, id)[:quantity-1]
-        print('***********TOP 3 LIST: {}'.format(self.TOP_3_LIST))
+        # print('***********TOP 3 LIST: {}'.format(self.TOP_3_LIST))
         pass
 
     def statistic_for_doc(self):
@@ -261,7 +264,7 @@ class API:
             sentences = sent_tokenize(self.BODY_QUERY['query'])
             for item in self.TOP_3_LIST:
                 for sentence in sentences:
-                    print('+++++++++++++++ Item: {} ------------ Sentence: {}'.format(item, sentence))
+                    # print('+++++++++++++++ Item: {} ------------ Sentence: {}'.format(item, sentence))
                     result , total_sentences = self.find_(sentence, self.BODY_QUERY['index_name'], self.BODY_QUERY['method'], 1, item['id'])
                     for item in result:
                         if (float(item['score']) > self.config['similarity_threshold']):
@@ -321,39 +324,41 @@ class API:
     def generate_actions(self, index):
         if int(index)==0:
             for row in self.data:
-                title = tokenize(row["tensangkien"])
-                title_vector = self.embed_text(title)
+                if len(row['tensangkien']) >= 20 and len(row['mota']) >= 20:
+                    title = tokenize(row["tensangkien"])
+                    title_vector = self.embed_text(title)
 
-                description = tokenize(row["mota"])
-                description_vector = self.embed_text(description)
-
-                doc = {
-                    "id": int(row["id"]),
-                    "title": row["tensangkien"],
-                    "title_vector": title_vector,
-                    "description": row["mota"],
-                    "description_vector": description_vector
-                }
-                yield doc
-        else:
-            for row in self.data:
-                title = tokenize(row["tensangkien"])
-                title_vector = self.embed_text(title)
-
-                sentences = sent_tokenize(row["mota"])
-
-                for sentence in sentences:
-                    description = tokenize(sentence)
+                    description = tokenize(row["mota"])
                     description_vector = self.embed_text(description)
 
                     doc = {
                         "id": int(row["id"]),
                         "title": row["tensangkien"],
                         "title_vector": title_vector,
-                        "description": sentence,
+                        "description": row["mota"],
                         "description_vector": description_vector
                     }
                     yield doc
+        else:
+            for row in self.data:
+                if len(row['tensangkien']) >= 20 and len(row['mota']) >= 20:
+                    title = tokenize(row["tensangkien"])
+                    title_vector = self.embed_text(title)
+
+                    sentences = sent_tokenize(row["mota"])
+
+                    for sentence in sentences:
+                        description = tokenize(sentence)
+                        description_vector = self.embed_text(description)
+
+                        doc = {
+                            "id": int(row["id"]),
+                            "title": row["tensangkien"],
+                            "title_vector": title_vector,
+                            "description": sentence,
+                            "description_vector": description_vector
+                        }
+                        yield doc
 
 
     def bulk_data(self):
@@ -363,11 +368,13 @@ class API:
             for ok, action in streaming_bulk(
                 client=self.es_client, index=i, actions=self.generate_actions(0 if i=='sangkien_title_description' else 1),
             ):
-                print(ok)
+                # print(ok)
+                pass
 
 api = API()
 
 if __name__=='__main__':
-    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000, reload="True")
-    server = uvicorn.Server(config)
-    server.run()
+    # config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000, reload="True")
+    # server = uvicorn.Server(config)
+    # server.run()
+    uvicorn.run("api:api.app", host='0.0.0.0', port=5000, reload="True")

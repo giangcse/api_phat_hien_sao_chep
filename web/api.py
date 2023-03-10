@@ -4,6 +4,7 @@ import uvicorn
 import tqdm
 import urllib3
 import os
+import dotenv
 
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import streaming_bulk
@@ -19,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Union
 
+dotenv.load_dotenv()
 class SEARCH_BODY(BaseModel):
     query: str
     index_name: int
@@ -345,9 +347,9 @@ class API:
 
 
     def bulk_data(self):
-        self.create_index("")
+        self.create_index(os.environ["ES_INDEX"])
         for ok, action in streaming_bulk(
-            client=self.es_client, index=i, actions=self.generate_actions(0 if i=='sangkien_title_description' else 1),
+            client=self.es_client, index=os.environ["ES_INDEX"], actions=self.generate_actions(os.environ["ES_INDEX"]),
         ):
             print(ok)
 

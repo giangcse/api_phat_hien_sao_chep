@@ -1,0 +1,121 @@
+{
+	"info": {
+		"_postman_id": "5c41f66d-e414-4140-87cb-3312ab441740",
+		"name": "TDKT",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21673039"
+	},
+	"item": [
+		{
+			"name": "SET CONFIG",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"sql_host\": \"10.91.13.222\\\\\\\\MSSQLSERVER2017,1533\",\r\n    \"sql_database\": \"TDKT_VinhLong\",\r\n    \"sql_username\": \"tdkt\",\r\n    \"sql_password\": \"123@123axxx\",\r\n    \"es_host\": \"10.91.13.222\",\r\n    \"es_port\": 9200,\r\n    \"es_username\": \"elastic\",\r\n    \"es_password\": \"fSaDkz8yrNNSeRPfzB5B\",\r\n    \"similarity_threshold\": 98\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "10.91.13.222:5000/set_config",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "5000",
+					"path": [
+						"set_config"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "10.91.13.222:5000/update",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "5000",
+					"path": [
+						"update"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SEARCH",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"query\": \"Vì tư duy của trẻ em là tư duy trực quan hình tượng. Trẻ thu hút bởi các mầu sắc rực rỡ, những hình thù ngộ nghĩnh sinh động.\",\r\n    \"index_name\": 1,\r\n    \"method\": \"simcse\",\r\n    \"index\": 0,\r\n    \"quantity\": 3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "10.91.13.222:5000/check_dao_van",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "5000",
+					"path": [
+						"check_dao_van"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "10.91.13.222:5000/check_dao_van",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"query\": \"Tung bảo vệ  nào phù hợp nhất đối với trẻ; chú trọng xây dựng các tiết dạy có chủ  đích về giáo dục kĩ năng tự bảo vệ; thường xuyên đưa nội dung giáo dục kĩ năng   tránh xâm hại cơ thể vào cho trẻ tìm hiểu; phát huy hơn nữa vai trò phối hợp với  phụ huynh trong công tác giáo dục trẻ. III. Các giải pháp đã tiến hành để giải quyết vấn đề Giải pháp 1: Lựa chọn nội dung giáo dục kĩ năng tự  bảo vệ bản thân vào   từng chủ đề cụ thể Trong thực tế có rất nhiều kỹ năng tự bảo vệ khác nhau, khó có thể liệt kê  một cách đầy đủ  những kỹ  năng con người cần có trong cuộc sống. Tuy nhiên  dựa vào đặc điểm tâm sinh lý của trẻ Mẫu giáo nhỡ cùng với các hoạt động đặc  thù của trẻ  trong trường Mầm non đó là “học mà chơi, chơi mà học” bên cạnh   đó dựa vào chương trình giáo dục Mầm non và tình hình cụ thể của trường, lớp   vào đầu năm học tôi đã cùng các đồng chí giáo viên trong tổ  lên kế  hoạch lựa  chọn các kỹ năng tự bảo vệ phù hợp với trẻ 4 – 5 tuổi để  đưa vào giáo dục trẻ  nhằm đạt hiệu quả cao. Bảng nội dụng giáo dục kỹ năng tự bảo vệ Tháng TT Chủ đề Kĩ năng tự bảo vệ bản thân thực hiện Trường Mầm  Kĩ năng chơi an toàn với đồ chơi ngoài  1 Tháng 09 non trời, tránh xa nơi nguy hiểm Không đi theo và nhận quà của người lạ 2 Bản thân Tháng 09 Tránh bị xâm hại cơ thể Không chơi với những đồ vật gây nguy  3 Gia đình hiểm, nơi nguy hiểm Tháng 10 Biết kêu người khác giúp đỡ khi bị lạc Không chơi với 1 số dụng cụ nghề gây  4 Nghề nghiệp Tháng 11 nguy hiểm,   Tháng 12 5 Động vật Tránh xa 1 số con vật gây nguy hiểm 6 Thực vật Đảm bảo an toàn, không leo trèo lên cây Tháng 01    6Tháng 02 Tết và mùa xuân Ăn uống vệ sinh trong ngày tết Biết chấp hành và thực hiện theo quy  Phương tiện giao  8 định của một số biển báo giao thông cơ  Tháng 03 thông bản. Biết cách đội và tháo mũ bảo hiểm Hiện tượng tự  Không chơi những nơi nguy hiểm: ao, hồ,  9 Tháng 04 nhiên sông, suối... Quê hương­ đất  10 An toàn khi đi du lịch Tháng 05 nước­ Bác Hồ Thông qua bảng kế hoạch xây dựng các nội dung giáo dục kĩ năng tự  bảo  vệ bản thân cho trẻ, tôi đã đưa ra một số kỹ năng cần thiết để giáo dục trẻ trong  những hoạt động cụ  thể  giúp trẻ  nhận thức sâu sắc hơn vấn đề, và hình thành   kỹ năng ứng phó khi gặp vấn đề nguy hiểm trong quá trình sống của trẻ, các nội   dụng được cụ  thể  hóa, không chồng chéo và được tích hợp vào từng chủ  đề  quen thuộc xuyên suốt cả năm học. Điều này giúp giáo viên dễ  dàng trong việc  lên kế  hoạch năm học, kế  hoạch giáo dục tháng, tuần, kế  hoạch ngày và thực  hiện giáo dục trẻ một cách có hiệu quả. Giải pháp 2: Xây dựng các tiết học dạy trẻ những kĩ năng cơ bản Trẻ   ở  lứa tuổi mẫu giáo nhỡ  4 – 5 tuổi hầu hết trẻ  chưa phân biệt được  những gì là nguy hiểm hay không nguy hiểm đối với   mình. Chính vì vậy nên  việc giúp trẻ phân biệt những mối nguy hiểm luôn được tôi quan tâm, lồng ghép   vào để  giáo dục trẻ  qua hoạt động học, hay hoạt động vui chơi, hoạt động lao  động, mọi lúc mọi nơi...Để việc giáo dục trẻ kỹ năng tự bảo vệ được tốt, tôi đã   lựa chọn ra những mối nguy hiểm thường xảy ra trong gia đình, trường học như:  Ổ  điện, quạt điện, bếp ga, phích nước nóng, bàn là…tôi thường tận dụng thời  gian đón trẻ, hoặc trong giờ  hoạt động chiều để  trò chuyện giáo dục trẻ. Tuy   nhiên  nếu chỉ dừng ở việc cô nhắc nhở trẻ không được lại gần, không được sử  dụng những đồ  dùng đó thì trẻ  sẽ  không hiểu vì sao phải như  vậy, trẻ  sẽ  dễ  dàng màu quên. Chính vì vậy tôi đã chủ động đưa các nội dung giáo dục kĩ năng     7tự  bảo vệ  bản thân thành nội dung trọng tâm của một hoạt động học để  giáo   dục trẻ.  Những kỹ  năng mà tôi đã áp dụng vào để  xây dựng thành hoạt động học   như: Dạy trẻ  không chơi với những đồ  vật nguy hiểm (dao, kéo, chất tẩy rửa,   đinh,  ổ  điện, nước sôi, bật lửa, kim tiêm, quạt, cách chơi cầu trượt...); dạy trẻ  cách đội và tháo mũ bảo hiểm Ví dụ  1: Đối với kỹ  năng “Dạy trẻ  không chơi với những đồ  vật nguy   hiểm” tôi tiến hành dạy trẻ   ở  chủ  đề  “ Gia đình” tôi đã xây dựng thành hoạt   động học cụ thể như sau: ­ Đầu tiên tối sẽ  phân loại ra các nội dung, đồ  dùng cần cung cấp cho trẻ  trong tiết dạy (dưới dạng tranh ảnh) và chia lớp làm 02 nhóm để thảo luận: + Nhóm thảo luận về  đồ  dùng sắc nhọn: dao, kéo, đinh, cạnh bàn, cạnh   ghế. + Nhóm thảo luận về   đồ  dùng gây bỏng, giật:  ấm nước sôi,  ổ  điện, bếp  ga, bật lửa. Trẻ thảo luận xong tôi mời đại diện các nhóm lên giới thiệu trình bày những  hiểu biết về các đồ dùng, cách xử lý của nhóm mình cho các nhóm còn lại xem. Sau mỗi lần giới thiệu tôi sẽ đăt hệ thống các câu hỏi để cả lớp khám phá: ­ Nhóm thảo luận về  đồ  dùng sắc nhọn: dao, kéo, đinh, cạnh  bàn, cạnh ghế. + Các con có nhận xét gì về các đồ dùng này? + Điều gì sẽ xảy ra nếu các con tự ý dùng dao, kéo? + Khi nào thì các con được dùng kéo? Và phải dùng như thế nào? + Các con phải làm gì khi chơi gần cạnh bàn, cạnh ghế?... ­ Nhóm thảo luận về đồ  dùng gây bỏng, giật:  ấm nước sôi,  ổ  điện, bếp ga.    8Đối với những đồ dùng này thì các con phải làm sao? (Tránh xa) + Vì sao lại phải tránh xa? + Điều gì sẽ  xảy ra khi các con nghịch  \",\r\n    \"index_name\": 1,\r\n    \"method\": \"simcse\",\r\n    \"index\": 0,\r\n    \"quantity\": 3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "10.91.13.222:5000/check_dao_van",
+					"host": [
+						"10",
+						"91",
+						"13",
+						"222"
+					],
+					"port": "5000",
+					"path": [
+						"check_dao_van"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

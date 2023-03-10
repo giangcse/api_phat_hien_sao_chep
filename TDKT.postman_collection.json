@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "5c41f66d-e414-4140-87cb-3312ab441740",
+		"_postman_id": "84f8a8a4-5b92-4862-8777-47fd99057cd7",
 		"name": "TDKT",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "21673039"
+		"_exporter_id": "25051016"
 	},
 	"item": [
 		{
@@ -21,14 +21,10 @@
 					}
 				},
 				"url": {
-					"raw": "10.91.13.222:5000/set_config",
+					"raw": "{{domain}}/set_config",
 					"host": [
-						"10",
-						"91",
-						"13",
-						"222"
+						"{{domain}}"
 					],
-					"port": "5000",
 					"path": [
 						"set_config"
 					]
@@ -42,14 +38,10 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "10.91.13.222:5000/update",
+					"raw": "{{domain}}/update",
 					"host": [
-						"10",
-						"91",
-						"13",
-						"222"
+						"{{domain}}"
 					],
-					"port": "5000",
 					"path": [
 						"update"
 					]
@@ -72,14 +64,10 @@
 					}
 				},
 				"url": {
-					"raw": "10.91.13.222:5000/check_dao_van",
+					"raw": "{{domain}}/check_dao_van",
 					"host": [
-						"10",
-						"91",
-						"13",
-						"222"
+						"{{domain}}"
 					],
-					"port": "5000",
 					"path": [
 						"check_dao_van"
 					]
@@ -88,7 +76,7 @@
 			"response": []
 		},
 		{
-			"name": "10.91.13.222:5000/check_dao_van",
+			"name": "CHECK COPYRIGHT",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -102,20 +90,43 @@
 					}
 				},
 				"url": {
-					"raw": "10.91.13.222:5000/check_dao_van",
+					"raw": "{{domain}}/check_dao_van",
 					"host": [
-						"10",
-						"91",
-						"13",
-						"222"
+						"{{domain}}"
 					],
-					"port": "5000",
 					"path": [
 						"check_dao_van"
 					]
 				}
 			},
 			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "domain",
+			"value": "10.91.13.222:5000",
+			"type": "string"
 		}
 	]
 }

@@ -1,0 +1,14 @@
+{
+    "properties": {
+        "url": {"type": "text", "analyzer": "standard"},
+        "title": {"type": "text", "analyzer": "standard"},
+        "title_vectorize": {"type": "text", "analyzer": "standard"},
+        "description": {"type": "text", "analyzer": "standard"},
+        "description_vectorize": {"type": "text", "analyzer": "standard"},
+        "keywords": {"type": "keyword"},
+        "content": {"type": "text", "analyzer": "standard"},
+        "content_vectorize": {"type": "text", "analyzer": "standard"},
+        "author": {"type": "text", "analyzer": "standard"},
+        "len": {"type": "integer"}
+    }
+}

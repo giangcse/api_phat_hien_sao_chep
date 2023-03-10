@@ -291,18 +291,27 @@ class API:
                             "type": "text",
                             "fielddata": True
                             },
-                        "title_vector": 
+                        "title_vectorize": 
                             {
                                 "type": "dense_vector",
                                 "dims": 768
                             },
                         "title": {"type": "text"},
                         "description": {"type": "text"},
-                        "description_vector": 
+                        "description_vectorize": 
                             {
                                 "type": "dense_vector",
                                 "dims": 768
-                            }
+                            },
+                        "content": {"type": "text"},
+                        "content_vectorize": {
+                            "type": "dense_vector",
+                            "dims": 768
+                        },
+                        "keywords": {"type": "text"},
+                        "author": {"type": "text"},
+                        "len": {"type": "integer"},
+                        "url": {"type": "text"}
                     }
                 },
             },
@@ -310,51 +319,37 @@ class API:
         )
 
     def generate_actions(self, index):
-        if int(index)==0:
-            for row in self.data:
-                title = tokenize(row["tensangkien"])
-                title_vector = self.embed_text(title)
+        for row in self.data:
+            title = tokenize(row["Title"])
+            title_vector = self.embed_text(title)
 
-                description = tokenize(row["mota"])
-                description_vector = self.embed_text(description)
+            description = tokenize(row["Description"])
+            description_vector = self.embed_text(description)
 
-                doc = {
-                    "id": int(row["id"]),
-                    "title": row["tensangkien"],
-                    "title_vector": title_vector,
-                    "description": row["mota"],
-                    "description_vector": description_vector
-                }
-                yield doc
-        else:
-            for row in self.data:
-                title = tokenize(row["tensangkien"])
-                title_vector = self.embed_text(title)
+            content = tokenize(row["Content"])
+            content_vector = self.embed_text(content)
 
-                sentences = sent_tokenize(row["mota"])
-
-                for sentence in sentences:
-                    description = tokenize(sentence)
-                    description_vector = self.embed_text(description)
-
-                    doc = {
-                        "id": int(row["id"]),
-                        "title": row["tensangkien"],
-                        "title_vector": title_vector,
-                        "description": sentence,
-                        "description_vector": description_vector
-                    }
-                    yield doc
+            doc = {
+                "title": row["Title"],
+                "title_vectorize": title_vector,
+                "description": row["Description"],
+                "description_vectorize": description_vector,
+                "content": row["Content"],
+                "content_vectorize": content_vector,
+                "keywords": row["Keywords"],
+                "author": row["Author"],
+                "len": row["Len"],
+                "url": row["Url"]
+            }
+            yield doc
 
 
     def bulk_data(self):
-        index_name = ['sangkien_title_description', 'sangkien_title_each_description']
-        for i in index_name:
-            self.create_index(i)
-            for ok, action in streaming_bulk(
-                client=self.es_client, index=i, actions=self.generate_actions(0 if i=='sangkien_title_description' else 1),
-            ):
-                print(ok)
+        self.create_index("")
+        for ok, action in streaming_bulk(
+            client=self.es_client, index=i, actions=self.generate_actions(0 if i=='sangkien_title_description' else 1),
+        ):
+            print(ok)
 
 api = API()
 

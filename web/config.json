@@ -6,10 +6,10 @@
         "password": "123@123axxx"
     },
     "elasticsearch": {
-        "host": "10.91.13.222",
+        "host": "127.0.0.1",
         "port": 9200,
         "username": "elastic",
-        "password": "fSaDkz8yrNNSeRPfzB5B"
+        "password": "Vnpt@123"
     },
     "similarity_threshold":98
 }

@@ -27,6 +27,16 @@ class SEARCH_BODY(BaseModel):
     title: Union[str, None] = None
     quantity: Union[int, None] = None
 
+class CONFIGURATION(BaseModel):
+    sql_host: str
+    sql_database: str
+    sql_username: str
+    sql_password: str
+    es_host: str
+    es_port: int
+    es_username: str
+    es_password: str
+    similarity_threshold: int
 
 class API:
     def __init__(self) -> None:
@@ -106,7 +116,7 @@ class API:
 
         # Set config
         @self.app.post('/set_config')
-        async def set_config(request: Request, sql_host: str = Form(...), sql_database: str = Form(...), sql_username: str = Form(...), sql_password: str = Form(...), es_host: str = Form(...), es_port: int = Form(...), es_username: str = Form(...), es_password: str = Form(...)):
+        async def set_config(request: Request, option: CONFIGURATION):
             '''
             Hàm tạo/ghi đè file config
             ------
@@ -126,16 +136,16 @@ class API:
             with open(self.CONFIG_FILE, 'w', encoding='utf8') as f:
                 json.dump({
                     "sql": {
-                        "host": sql_host,
-                        "database": sql_database,
-                        "username": sql_username,
-                        "password": sql_password
+                        "host": option.sql_host,
+                        "database": option.sql_database,
+                        "username": option.sql_username,
+                        "password": option.sql_password
                     },
                     "elasticsearch": {
-                        "host": es_host,
-                        "port": es_port,
-                        "username": es_username,
-                        "password": es_password
+                        "host": option.es_host,
+                        "port": option.es_port,
+                        "username": option.es_username,
+                        "password": option.es_password
                     }
                 }, f)
             f.close()

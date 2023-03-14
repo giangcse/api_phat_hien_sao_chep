@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Union
+import pandas as pd
 
 dotenv.load_dotenv()
 class SEARCH_BODY(BaseModel):
@@ -56,7 +57,8 @@ class API:
         self.model_embedding = SentenceTransformer('VoVanPhuc/sup-SimCSE-VietNamese-phobert-base')
         # Check file config
         print('*********** start init *********** ')
-        config_file_path = os.path.join('./web/',self.CONFIG_FILE)
+        config_file_path = os.path.join(self.CONFIG_FILE)
+        print(config_file_path)
         if os.path.exists(config_file_path):
             print('*********** CONFIG_FILE existed *********** ')
             with open(config_file_path, 'r', encoding='utf8') as f:
@@ -70,10 +72,12 @@ class API:
                 )
                 print('*********** Elasticsearch inited *********** ')
                 # Connect to SQL Server and create a cursor
-                self.sql_connection = pyodbc.connect(driver='{ODBC Driver 17 for SQL Server}', 
-                                                    host=str(self.config['sql']['host']), database=str(self.config['sql']['database']),
-                                                    user=str(self.config['sql']['username']), password=str(self.config['sql']['password']))
-                self.cursor = self.sql_connection.cursor()
+                # self.sql_connection = pyodbc.connect(driver='{ODBC Driver 17 for SQL Server}', 
+                #                                     host=str(self.config['sql']['host']), database=str(self.config['sql']['database']),
+                #                                     user=str(self.config['sql']['username']), password=str(self.config['sql']['password']))
+                # self.cursor = self.sql_connection.cursor()
+        else:
+            print('*********** CHECK CONFIG_FILE *********** ')
         # Init an API app
         self.app = FastAPI()
         self.app.add_middleware(
@@ -87,6 +91,28 @@ class API:
         @self.app.get('/')
         async def index():
             return JSONResponse(status_code=200, content="Kết nối thành công. Vui lòng kiểm tra lại config.")
+
+                # Update database
+        @self.app.post('/upload_data')
+        async def update():
+            '''
+            Hàm cập nhật DB từ SQL Server sang Elasticsearch
+            -----
+            Tìm max_id bên Elasticsearch và so sánh với SQL Server
+            '''
+
+            new_df = pd.read_csv('./news_5000_19032020_201604.csv')
+            print(new_df.columns)
+
+
+            self.data = []
+            for item in new_df.itertuples():
+                self.data.append({"title": str(item.title), "description": str(item.description), "content": str(item.content),
+                "keywords": str(item.keywords), "author": str(item.author), "len": str(item.len), "url": str(item.url)})
+            self.bulk_data()
+
+            return JSONResponse(status_code=200, content="Cập nhật thành công")
+
         # Update database
         @self.app.post('/update')
         async def update():
@@ -162,8 +188,7 @@ class API:
         @self.app.post('/check_dao_van')
         async def check_dao_van(search_body: SEARCH_BODY):
             self.BODY_QUERY = {"query": search_body.query, "index_name":search_body.index_name, "method": search_body.method, "index": search_body.index, "title": search_body.title, "quantity": search_body.quantity}
-            self.find_best_match_docs(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title, search_body.quantity)
-            return JSONResponse(content=self.statistic_for_doc(), status_code=200)
+            return JSONResponse(content=self.find_best_match_docs(search_body.query, search_body.index_name, search_body.method, search_body.index, search_body.title, search_body.quantity), status_code=200)
 
     def find_(self, query, index_name, method, index, id):
         '''
@@ -177,8 +202,13 @@ class API:
         output:
         JSON Object
         '''
-        search_vector = 'description_vector' if int(index_name)==1 else 'title_vector'
-        index = 'sangkien_title_description' if int(index)==0 else 'sangkien_title_each_description'
+        search_vector = 'title_vectorize'
+        if (int(index_name)==1):
+            search_vector = 'description_vectorize'
+        if (int(index_name)==2):
+            search_vector = 'content_vectorize'
+        # index = 'sangkien_title_description' if int(index)==0 else 'sangkien_title_each_description'
+        index = 'health_articles'
         if str(method).lower() == 'simcse':
             query_vector = self.embed_text([tokenize(query)])[0]
             if(id):
@@ -196,7 +226,7 @@ class API:
                                 }
                             },
                         "script": {
-                            "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 0.0",
+                            "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 1.0",
                             "params": {"query_vector": query_vector}
                         }
                     }
@@ -209,7 +239,7 @@ class API:
                     }
                     ,
                     "script": {
-                        "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 0.0",
+                        "source": "cosineSimilarity(params.query_vector, '"+search_vector+"') + 1.0",
                         "params": {"query_vector": query_vector}
                     }
                 }
@@ -228,7 +258,7 @@ class API:
             body={
                 "query": script_query,
                 "_source": {
-                    "includes": ["id", "title", "description"]
+                    "includes": ["id", "title", "description","content"]
                 },
             },
             ignore=[400]
@@ -238,16 +268,17 @@ class API:
         if "hits" in response:
             for hit in response["hits"]["hits"]:
                 result.append({"score": hit["_score"] * 100, 
-                                "id": hit["_source"]['id'],
                                 "title": str(hit["_source"]['title']), 
-                                "description": str(hit["_source"]['description'])})
+                                "description": str(hit["_source"]['description']),
+                                "content": str(hit["_source"]['content'])})
         
         return result , response["hits"]['total']['value']
 
     def find_best_match_docs(self, query, index_name, method, index, id, quantity):
         self.TOP_3_LIST , _ = self.find_(query, index_name, method, index, id)[:quantity-1]
         print('***********TOP 3 LIST: {}'.format(self.TOP_3_LIST))
-        pass
+        # pass
+        return self.TOP_3_LIST
 
     def statistic_for_doc(self):
         resultList = []
@@ -322,26 +353,26 @@ class API:
 
     def generate_actions(self, index):
         for row in self.data:
-            title = tokenize(row["Title"])
+            title = tokenize(row["title"])
             title_vector = self.embed_text(title)
 
-            description = tokenize(row["Description"])
+            description = tokenize(row["description"])
             description_vector = self.embed_text(description)
 
-            content = tokenize(row["Content"])
+            content = tokenize(row["content"])
             content_vector = self.embed_text(content)
 
             doc = {
-                "title": row["Title"],
+                "title": row["title"],
                 "title_vectorize": title_vector,
-                "description": row["Description"],
+                "description": row["description"],
                 "description_vectorize": description_vector,
-                "content": row["Content"],
+                "content": row["content"],
                 "content_vectorize": content_vector,
-                "keywords": row["Keywords"],
-                "author": row["Author"],
-                "len": row["Len"],
-                "url": row["Url"]
+                "keywords": row["keywords"],
+                "author": row["author"],
+                "len": row["len"],
+                "url": row["url"]
             }
             yield doc
 
@@ -356,6 +387,6 @@ class API:
 api = API()
 
 if __name__=='__main__':
-    config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000, reload="True")
-    server = uvicorn.Server(config)
-    server.run()
+    # config = uvicorn.Config("api:api.app", host='0.0.0.0', port=5000, reload="True")
+    # server = uvicorn.Server(config)
+    uvicorn.run("api:api.app", host='0.0.0.0', port=5001, reload="True")

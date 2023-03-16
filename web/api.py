@@ -1,5 +1,4 @@
 import json
-import pyodbc
 import uvicorn
 import tqdm
 import urllib3
